@@ -4,12 +4,14 @@ import { Link } from 'react-router-dom';
 import { addDoc } from 'firebase/firestore';
 import { usersRef } from '../firebase/firebase';
 import { useNavigate } from 'react-router-dom';
-import bcrypt from 'bcryptjs'
-import {
-  getAuth,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from 'firebase/auth';
+import bcrypt from 'bcryptjs';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+
+// import {
+//   getAuth,
+//   RecaptchaVerifier,
+//   signInWithPhoneNumber,
+// } from 'firebase/auth';
 import app from '../firebase/firebase';
 import swal from 'sweetalert';
 import { async } from '@firebase/util';
@@ -22,23 +24,23 @@ function Login() {
   const [OTP, setOTP] = useState('');
   const [data, setData] = useState({
     name: '',
-    number: '',
+    email: '',
     password: '',
   });
 
   const navigate = useNavigate();
-  const generateRecaptha = () => {
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      'recaptcha-container',
-      {
-        size: 'invisible',
-        callback: (response) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-      },
-      auth
-    );
-  };
+  // const generateRecaptha = () => {
+  //   window.recaptchaVerifier = new RecaptchaVerifier(
+  //     'recaptcha-container',
+  //     {
+  //       size: 'invisible',
+  //       callback: (response) => {
+  //         // reCAPTCHA solved, allow signInWithPhoneNumber.
+  //       },
+  //     },
+  //     auth
+  //   );
+  // };
 
   const handle = (e) => {
     const { name, value } = e.target;
@@ -47,61 +49,81 @@ function Login() {
     });
   };
 
-  const requestOTP = () => {
-    setLoading(true);
-    generateRecaptha();
-    const appVerifier = window.recaptchaVerifier;
-    signInWithPhoneNumber(auth, `+92${data.number}`, appVerifier)
-      .then((confirmationResult) => {
-        window.confirmationResult = confirmationResult;
-        swal({
-          title: 'OTP Sent',
-          icon: 'success',
-          buttons: 'ok',
-          timer: 3000,
-        });
-        setLoading(false);
-        setOtpSent(true);
-      })
-      .catch((error) => {
-        // Error; SMS not sent
-        // ...
-      });
-  };
+  // const requestOTP = () => {
+  //   setLoading(true);
+  //   generateRecaptha();
+  //   const appVerifier = window.recaptchaVerifier;
+  //   signInWithPhoneNumber(auth, `+92${data.number}`, appVerifier)
+  //     .then((confirmationResult) => {
+  //       window.confirmationResult = confirmationResult;
+  //       swal({
+  //         title: 'OTP Sent',
+  //         icon: 'success',
+  //         buttons: 'ok',
+  //         timer: 3000,
+  //       });
+  //       setLoading(false);
+  //       setOtpSent(true);
+  //     })
+  //     .catch((error) => {
+  //       // Error; SMS not sent
+  //       // ...
+  //     });
+  // };
 
-
-  const verifyOTP = ()=>{
+  const Register = () => {
     try {
+      // window.confirmationResult.confirm(OTP).then((result) => {
+      //   uploadData();
+      //   swal({
+      //     title: 'Registered',
+      //     icon: 'success',
+      //     buttons: 'ok',
+      //     timer: 3000,
+      //   });
+      //   setLoading(false);
+      //   navigate('/login');
+      // });
       setLoading(true);
-      window.confirmationResult.confirm(OTP).then((result) => {
-        uploadData();
-        swal({
-          title: 'Registered',
-          icon: 'success',
-          buttons: 'ok',
-          timer: 3000,
+      createUserWithEmailAndPassword(auth, data.email, data.password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          uploadData();
+          swal({
+            title: 'Registered',
+            icon: 'success',
+            buttons: 'ok',
+            timer: 3000,
+          });
+          navigate('/login');
+        })
+        .catch((error) => {
+          swal({
+            title: error.message,
+            icon: 'fail',
+            buttons: 'ok',
+            timer: 3000,
+          });
+          setLoading(false);
         });
-        setLoading(false);
-        navigate('/login');
-      });
     } catch (error) {
       swal({
-        title: 'Wrong OTP',
+        title: error.message,
         icon: 'fail',
         buttons: 'ok',
         timer: 3000,
       });
     }
-  }
-  const uploadData = async ()=>{
+  };
+  const uploadData = async () => {
     try {
       const salt = bcrypt.genSaltSync(10);
-    const  hash = bcrypt.hashSync(data.password,salt);
-    await addDoc(usersRef,{
-      name:data.name,
-      number:data.number,
-      password:hash
-    })
+      const hash = bcrypt.hashSync(data.password, salt);
+      await addDoc(usersRef, {
+        name: data.name,
+        email: data.email,
+        password: hash,
+      });
     } catch (error) {
       swal({
         title: error.message,
@@ -110,7 +132,7 @@ function Login() {
         timer: 3000,
       });
     }
-  }
+  };
   return (
     <div className="flex items-center justify-center flex-col mt-6">
       <h1 className="text-2xl tracking-wider font-bold">Sign Up</h1>
@@ -137,7 +159,10 @@ function Login() {
               />
             </div>
             <div class="p-2 w-full">
-              <button onClick={verifyOTP} class="flex mx-auto text-white bg-lime-500 border-0 py-2 px-8 focus:outline-none hover:bg-lime-600 rounded text-lg">
+              <button
+                // onClick={verifyOTP}
+                class="flex mx-auto text-white bg-lime-500 border-0 py-2 px-8 focus:outline-none hover:bg-lime-600 rounded text-lg"
+              >
                 {loading ? (
                   <TailSpin height={25} color="white" />
                 ) : (
@@ -173,14 +198,14 @@ function Login() {
                 for="message"
                 class="leading-7 font-small text-sm text-gray-300"
               >
-                Mobile No.
+                Email
               </label>
               <input
-                type="number"
-                id="number"
+                type="email"
+                id="email"
                 onChange={handle}
-                name="number"
-                value={data.number}
+                name="email"
+                value={data.email}
                 class="w-full  text-white  rounded border border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
               />
             </div>
@@ -206,10 +231,11 @@ function Login() {
           </div>
           <div class="p-2 w-full">
             <button
-              onClick={requestOTP}
+              // onClick={requestOTP}
+              onClick={Register}
               class="flex mx-auto text-white bg-lime-500 border-0 py-2 px-8 focus:outline-none hover:bg-lime-600 rounded text-lg"
             >
-              {loading ? <TailSpin height={25} color="white" /> : 'Request OTP'}
+              {loading ? <TailSpin height={25} color="white" /> : 'Register'}
             </button>
           </div>
           <div>

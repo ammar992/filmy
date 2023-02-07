@@ -12,7 +12,7 @@ import bcrypt from 'bcryptjs';
 function Login() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState({
-    number: '',
+    email: '',
     password: '',
   });
 
@@ -30,7 +30,7 @@ function Login() {
   const login = async () => {
     setLoading(true);
     try {
-      const quer = query(usersRef, where('number', '==', data.number));
+      const quer = query(usersRef, where('email', '==', data.email));
       const querySnapshort = await getDocs(quer);
       querySnapshort.forEach((doc) => {
         const _data = doc.data();
@@ -70,13 +70,13 @@ function Login() {
             for="message"
             class="leading-7 font-small text-sm text-gray-300"
           >
-            Mobile No.
+            Email
           </label>
           <input
-            type="number"
-            id="number"
+            type="email"
+            id="email"
             onChange={handle}
-            name="number"
+            name="email"
             value={data.number}
             class="w-full  text-white  rounded border border-gray-300 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
           />
